@@ -28,7 +28,8 @@ export const enviarCorreo = async (correoDestino: string, asunto: string, mensaj
     const str = [
       `From: EduPlay <${process.env.EMAIL_USER}>`,
       `To: ${correoDestino}`,
-      `Subject: ${asunto}`,
+      // Codificamos el asunto en Base64 para que Gmail entienda los emojis
+      `Subject: =?utf-8?B?${Buffer.from(asunto).toString('base64')}?=`,
       'Content-Type: text/html; charset=utf-8',
       '',
       mensajeHTML,

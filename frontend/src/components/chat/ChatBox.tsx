@@ -49,7 +49,11 @@ export const ChatBox = ({ claseId }: { claseId: string }) => {
     loadHistory();
 
     // 2. Conectar a Socket.io usando el namespace de chat
-    const socket = io('http://localhost:3000/chat', {
+    const backendUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace('/api', '') 
+      : 'https://eduplay-backend-wcdv.onrender.com';
+
+    const socket = io(`${backendUrl}/chat`, {
       auth: { token },
       transports: ['websocket', 'polling']
     });
