@@ -44,23 +44,35 @@ export const eliminarUsuario = async (req: Request, res: Response) => {
     const idAEliminar = Number(id);
     const idSolicitante = (req as any).user.id;
 
-    if (idAEliminar === 1) {
-      return res
-        .status(403)
-        .json({ message: "El Administrador Principal es intocable." });
-    }
+    const CORREO_SUPERADMIN = "nick3m9220@gmail.com"; 
 
     const usuarioDestino = await prisma.usuario.findUnique({
       where: { id: idAEliminar },
     });
 
-    if (usuarioDestino?.rol === "ADMIN" && idSolicitante !== 1) {
+    if (!usuarioDestino) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    if (usuarioDestino.email === CORREO_SUPERADMIN) {
       return res
         .status(403)
-        .json({
-          message:
-            "Solo el Administrador Principal puede eliminar a otros administradores.",
-        });
+        .json({ message: "El Administrador Principal es intocable." });
+    }
+
+    if (usuarioDestino.rol === "ADMIN") {
+      // Buscamos los datos del solicitante en la BD para ver su correo
+      const usuarioSolicitante = await prisma.usuario.findUnique({
+        where: { id: idSolicitante }
+      });
+
+      if (usuarioSolicitante?.email !== CORREO_SUPERADMIN) {
+        return res
+          .status(403)
+          .json({
+            message: "Solo el Administrador Principal puede eliminar a otros administradores.",
+          });
+      }
     }
 
     await prisma.usuario.delete({
