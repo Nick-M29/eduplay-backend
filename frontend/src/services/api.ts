@@ -1,8 +1,12 @@
 import axios from 'axios';
 
+// Usamos la variable de entorno de Vite. Si no existe (ej. en Vercel si se nos olvida ponerla), 
+// usa directamente tu URL de producción en Render.
+const API_URL = import.meta.env.VITE_API_URL || 'https://eduplay-backend-wcdv.onrender.com';
+
 // Instancia configurada para apuntar al backend de EduPlay
 export const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: API_URL, // Aquí aplicamos el cambio
   timeout: 10000,
 });
 
