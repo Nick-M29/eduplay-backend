@@ -47,7 +47,7 @@ export const eliminarUsuario = async (req: Request, res: Response) => {
     const CORREO_SUPERADMIN = "nick3m9220@gmail.com"; 
 
     // 1. Extracción a prueba de fallos del ID del solicitante (tú)
-    const rawId = (req as any).user?.id || (req as any).usuario?.id || (req as any).userId;
+    const rawId = (req as any).user?.userId; 
     const idSolicitante = Number(rawId);
 
     if (!rawId || isNaN(idSolicitante)) {
