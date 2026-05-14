@@ -38,31 +38,36 @@ export const Register = () => {
         rol: selectedRol,
         nombreCompleto,
         email,
-        password,
+        password
       };
 
-      if (selectedRol === "PROFESOR" || selectedRol === "PADRE") {
+      if (selectedRol === 'PROFESOR' || selectedRol === 'PADRE') {
         payload.fechaNacimiento = fechaNacimiento;
       }
 
-      // 1. Registrar usuario en el backend
-      await api.post("/auth/register", payload);
+      // 1. Registrar usuario
+      await api.post('/auth/register', payload);
 
-      // 2. Redirigir a la pantalla de verificación enviando el email de forma oculta
-      const storage = JSON.parse(localStorage.getItem("auth-storage") || "{}");
-      const isAdmin = storage.state?.user?.rol === "ADMIN";
+      // --- DETECTOR DE ADMINISTRADOR ---
+      // Verificamos si somos un Admin usando el store o el localStorage
+      const storage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+      const isAdmin = storage.state?.user?.rol === 'ADMIN';
 
       if (isAdmin) {
-        alert("Usuario creado con éxito por el administrador");
-        // Aquí podrías resetear el formulario o cerrar un modal si fuera necesario
-        setNombreCompleto("");
-        setEmail("");
-        setPassword("");
-        setFechaNacimiento("");
+        // Si es Admin, NO navegamos. Solo avisamos y limpiamos.
+        alert(`Usuario ${email} creado correctamente.`);
+        
+        // Limpiamos los campos para que puedas crear otro
+        setNombreCompleto('');
+        setEmail('');
+        setPassword('');
+        setFechaNacimiento('');
+        setSelectedRol(null); 
       } else {
-        // Flujo normal para usuarios que se registran solos
-        navigate("/verificar", { state: { email } });
+        // Si es un usuario normal, sí va a verificar
+        navigate('/verificar', { state: { email } });
       }
+      
     } catch (err: any) {
       if (err.response?.data?.errors) {
         // Formatear errores de validación de Zod del backend
