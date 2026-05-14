@@ -24,8 +24,10 @@ export const LandingPage = () => {
     };
 
     try {
-      // Petición POST al endpoint que creamos en el backend
-      const response = await axios.post('http://localhost:3000/api/contacto', formData);
+      // 1. Usamos la URL dinámica de Vercel/Render en lugar de localhost
+      // 2. Eliminamos "const response =" para evitar el error de TypeScript en Vercel
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://eduplay-backend-wcdv.onrender.com/api';
+      await axios.post(`${apiUrl}/contacto`, formData);
       
       // Si el backend responde bien, avisamos al usuario
       alert(`¡Mensaje enviado con éxito, ${formData.nombre}! Revisaremos tu consulta pronto.`);
@@ -136,7 +138,7 @@ export const LandingPage = () => {
         </div>
       </section>
 
-      {/* 4. SECCIÓN DE CONTACTO (Aquí conectamos los Refs y la Función) */}
+      {/* 4. SECCIÓN DE CONTACTO */}
       <section id="contacto" className="py-24 px-6 bg-slate-900 mt-12 relative">
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-green-500"></div>
         <div className="max-w-5xl mx-auto">
@@ -150,7 +152,6 @@ export const LandingPage = () => {
               </div>
             </div>
             <div className="p-10 md:w-7/12 bg-slate-50">
-              {/* ASIGNAMOS LA FUNCIÓN HANDLECONTACTO AL SUBMIT */}
               <form className="space-y-5" onSubmit={handleContacto}>
                 <div>
                   <label className="block text-sm font-black text-slate-800 mb-2 uppercase">Nombre Completo</label>

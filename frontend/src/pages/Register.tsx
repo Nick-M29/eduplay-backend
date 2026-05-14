@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import { BookOpen, Users, GraduationCap, Loader2, AlertCircle } from 'lucide-react';
 import { Navbar } from '../components/layout/Navbar';
