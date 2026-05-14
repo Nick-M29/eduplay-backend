@@ -75,13 +75,22 @@ export const eliminarUsuario = async (req: Request, res: Response) => {
       }
     }
 
+    if (usuarioDestino.rol === "PROFESOR" || usuarioDestino.rol === "ADMIN") {
+      await prisma.profesor.deleteMany({ where: { usuarioId: idAEliminar } });
+    } else if (usuarioDestino.rol === "ALUMNO") {
+      await prisma.alumno.deleteMany({ where: { usuarioId: idAEliminar } });
+    } else if (usuarioDestino.rol === "PADRE") {
+      await prisma.padre.deleteMany({ where: { usuarioId: idAEliminar } });
+    }
+
     await prisma.usuario.delete({
       where: { id: idAEliminar },
     });
 
     res.json({ message: "Usuario eliminado correctamente" });
   } catch (error) {
-    res.status(500).json({ message: "Error al eliminar usuario" });
+    console.error("Error en eliminarUsuario:", error);
+    res.status(500).json({ message: "Error al eliminar usuario en la base de datos" });
   }
 };
 
