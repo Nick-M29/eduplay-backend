@@ -18,6 +18,19 @@ import {
 
 export const AdminDashboard = () => {
   // ==========================================
+  // OBTENER ID DEL USUARIO ACTUAL (Para SuperAdmin)
+  // ==========================================
+  const storageString = localStorage.getItem('auth-storage');
+  let miId: number | null = null;
+  if (storageString) {
+    try {
+      miId = JSON.parse(storageString)?.state?.user?.id;
+    } catch (e) {
+      console.error("Error leyendo ID del admin");
+    }
+  }
+
+  // ==========================================
   // ESTADOS: GESTIÓN DE USUARIOS
   // ==========================================
   const [usuarios, setUsuarios] = useState<any[]>([]);
@@ -96,8 +109,9 @@ export const AdminDashboard = () => {
       try {
         await adminService.deleteUser(id);
         fetchUsuarios();
-      } catch (error) {
-        console.error(error);
+      } catch (error: any) {
+        // Aprovechamos para mostrar el error del backend si intenta saltarse las reglas
+        alert(error.response?.data?.message || 'Error al eliminar usuario');
       }
     }
   };
@@ -410,6 +424,7 @@ export const AdminDashboard = () => {
                       </td>
 
                       <td className="p-4 text-right space-x-2">
+                        {/* Botón Hacer Admin: Solo visible si NO es admin */}
                         {u.rol !== "ADMIN" && (
                           <button
                             onClick={() => handleHacerAdmin(u.id)}
@@ -420,12 +435,13 @@ export const AdminDashboard = () => {
                           </button>
                         )}
 
+                        {/* Botón Editar: Siempre visible */}
                         <button
                           onClick={() => {
                             setUsuarioEditando(u);
                             setFormData({
                               ...formData,
-                              nombreCompleto: u.nombreCompleto,
+                              nombreCompleto: u.nombreCompleto || "",
                               email: u.email,
                               rol: u.rol,
                             });
@@ -437,7 +453,9 @@ export const AdminDashboard = () => {
                           <Edit className="w-4 h-4" />
                         </button>
 
-                        {u.rol !== "ADMIN" && (
+                        {/* Botón Eliminar (NUEVA LÓGICA DE SUPERADMIN) */}
+                        {/* No se puede borrar al ID 1 NUNCA. Si es ADMIN, solo el miId===1 puede verlo */}
+                        {u.id !== 1 && (u.rol !== "ADMIN" || miId === 1) && (
                           <button
                             onClick={() => handleEliminar(u.id)}
                             className="p-2 bg-white border border-gray-200 text-red-600 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors"
