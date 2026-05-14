@@ -1,30 +1,29 @@
-// Importamos tu instancia de Axios ya configurada (ajusta la ruta si no están en la misma carpeta)
 import { api } from './api'; 
 
 export const adminService = {
   getAllUsers: async () => {
-    // La URL base y el token ya se añaden automáticamente gracias a api.ts
-    const response = await api.get('/admin/usuarios');
+    // Añadimos /api a la ruta
+    const response = await api.get('/api/admin/usuarios');
     return response;
   },
   
   deleteUser: async (id: number) => {
-    const response = await api.delete(`/admin/usuarios/${id}`);
+    const response = await api.delete(`/api/admin/usuarios/${id}`);
     return response;
   },
   
   promoteToAdmin: async (id: number) => {
-    const response = await api.patch(`/admin/usuarios/${id}/admin`);
+    const response = await api.patch(`/api/admin/usuarios/${id}/admin`);
     return response;
   },
 
   createUser: async (userData: any) => {
-    const response = await api.post('/admin/usuarios', userData);
+    const response = await api.post('/api/admin/usuarios', userData);
     return response;
   },
 
   updateUser: async (id: number, userData: any) => {
-    const response = await api.put(`/admin/usuarios/${id}`, userData);
+    const response = await api.put(`/api/admin/usuarios/${id}`, userData);
     return response;
   }
 };
