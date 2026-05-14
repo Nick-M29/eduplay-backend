@@ -20,16 +20,16 @@ export const AdminDashboard = () => {
   // ==========================================
   // OBTENER ID DEL USUARIO ACTUAL (Para SuperAdmin)
   // ==========================================
-  const storageString = localStorage.getItem('auth-storage');
-  let miId: number | null = null;
+  const storageString = localStorage.getItem("auth-storage");
+  let miEmail: string | null = null;
   if (storageString) {
     try {
-      miId = JSON.parse(storageString)?.state?.user?.id;
+      miEmail = JSON.parse(storageString)?.state?.user?.email;
     } catch (e) {
-      console.error("Error leyendo ID del admin");
+      console.error("Error leyendo Email del admin");
     }
   }
-
+  const CORREO_SUPERADMIN = "nick3m9220@gmail.com";
   // ==========================================
   // ESTADOS: GESTIÓN DE USUARIOS
   // ==========================================
@@ -41,23 +41,26 @@ export const AdminDashboard = () => {
   const [formData, setFormData] = useState({
     nombreCompleto: "",
     email: "",
-    password: "", 
+    password: "",
     rol: "PROFESOR",
   });
 
   // ==========================================
   // ESTADOS: CAMBIO DE CONTRASEÑA
   // ==========================================
-  const [passwordActual, setPasswordActual] = useState('');
-  const [nuevaPassword, setNuevaPassword] = useState('');
-  const [confirmarPassword, setConfirmarPassword] = useState('');
+  const [passwordActual, setPasswordActual] = useState("");
+  const [nuevaPassword, setNuevaPassword] = useState("");
+  const [confirmarPassword, setConfirmarPassword] = useState("");
   const [loadingPassword, setLoadingPassword] = useState(false);
-  const [mensajePassword, setMensajePassword] = useState<{ tipo: 'error' | 'exito', texto: string } | null>(null);
-  
+  const [mensajePassword, setMensajePassword] = useState<{
+    tipo: "error" | "exito";
+    texto: string;
+  } | null>(null);
+
   // Memoria del navegador: Si ya la cambió antes, iniciamos ocultando el formulario
   const [ocultarFormulario, setOcultarFormulario] = useState(
-    localStorage.getItem('admin_pwd_changed') === 'true'
-  ); 
+    localStorage.getItem("admin_pwd_changed") === "true",
+  );
   // Controla el banner de éxito solo en la sesión actual
   const [mostrarExito, setMostrarExito] = useState(false);
 
@@ -98,26 +101,35 @@ export const AdminDashboard = () => {
       }
       setIsModalOpen(false);
       setUsuarioEditando(null);
-      fetchUsuarios(); 
+      fetchUsuarios();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error al guardar los datos del usuario');
+      alert(
+        error.response?.data?.message ||
+          "Error al guardar los datos del usuario",
+      );
     }
   };
 
   const handleEliminar = async (id: number) => {
-    if (window.confirm("🚨 ¿ESTÁS SEGURO? Se borrará todo el rastro de este usuario.")) {
+    if (
+      window.confirm(
+        "🚨 ¿ESTÁS SEGURO? Se borrará todo el rastro de este usuario.",
+      )
+    ) {
       try {
         await adminService.deleteUser(id);
         fetchUsuarios();
       } catch (error: any) {
         // Aprovechamos para mostrar el error del backend si intenta saltarse las reglas
-        alert(error.response?.data?.message || 'Error al eliminar usuario');
+        alert(error.response?.data?.message || "Error al eliminar usuario");
       }
     }
   };
 
   const handleHacerAdmin = async (id: number) => {
-    if (window.confirm("¿Estás seguro de darle PODER ABSOLUTO a este usuario?")) {
+    if (
+      window.confirm("¿Estás seguro de darle PODER ABSOLUTO a este usuario?")
+    ) {
       try {
         await adminService.promoteToAdmin(id);
         fetchUsuarios();
@@ -135,46 +147,51 @@ export const AdminDashboard = () => {
     setMensajePassword(null);
 
     if (nuevaPassword !== confirmarPassword) {
-      setMensajePassword({ tipo: 'error', texto: 'Las nuevas contraseñas no coinciden.' });
+      setMensajePassword({
+        tipo: "error",
+        texto: "Las nuevas contraseñas no coinciden.",
+      });
       return;
     }
 
     if (nuevaPassword.length < 6) {
-      setMensajePassword({ tipo: 'error', texto: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+      setMensajePassword({
+        tipo: "error",
+        texto: "La nueva contraseña debe tener al menos 6 caracteres.",
+      });
       return;
     }
 
     setLoadingPassword(true);
 
     try {
-      await api.put('/auth/cambiar-password', {
+      await api.put("/auth/cambiar-password", {
         passwordActual,
-        nuevaPassword
+        nuevaPassword,
       });
 
       // Guardamos el éxito en la memoria del navegador para siempre
-      localStorage.setItem('admin_pwd_changed', 'true');
-      
+      localStorage.setItem("admin_pwd_changed", "true");
+
       // Ocultamos formulario y mostramos éxito en la sesión actual
       setOcultarFormulario(true);
       setMostrarExito(true);
-      
     } catch (error: any) {
-      setMensajePassword({ 
-        tipo: 'error', 
-        texto: error.response?.data?.message || 'Error al cambiar la contraseña' 
+      setMensajePassword({
+        tipo: "error",
+        texto:
+          error.response?.data?.message || "Error al cambiar la contraseña",
       });
       setLoadingPassword(false);
-    } 
+    }
   };
 
   return (
     <div className="space-y-8">
-      
       {/* ========================================== */}
       {/* SECCIÓN: SEGURIDAD                         */}
       {/* ========================================== */}
-      
+
       {/* 1. Si no la ha cambiado en esta máquina, mostramos alerta y formulario */}
       {!ocultarFormulario && (
         <div className="space-y-6">
@@ -183,9 +200,13 @@ export const AdminDashboard = () => {
               <ShieldAlert className="w-8 h-8 text-yellow-900" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-yellow-900 mb-1">¡Atención, Administrador!</h2>
+              <h2 className="text-xl font-black text-yellow-900 mb-1">
+                ¡Atención, Administrador!
+              </h2>
               <p className="text-yellow-800 font-bold">
-                Si aún estás usando la contraseña temporal de la instalación, cámbiala inmediatamente en el panel de abajo por motivos de seguridad.
+                Si aún estás usando la contraseña temporal de la instalación,
+                cámbiala inmediatamente en el panel de abajo por motivos de
+                seguridad.
               </p>
             </div>
           </div>
@@ -207,8 +228,8 @@ export const AdminDashboard = () => {
                 <label className="block text-sm font-black text-slate-800 mb-2 uppercase tracking-wider">
                   Contraseña Actual
                 </label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   required
                   value={passwordActual}
                   onChange={(e) => setPasswordActual(e.target.value)}
@@ -222,8 +243,8 @@ export const AdminDashboard = () => {
                   <label className="block text-sm font-black text-slate-800 mb-2 uppercase tracking-wider">
                     Nueva Contraseña
                   </label>
-                  <input 
-                    type="password" 
+                  <input
+                    type="password"
                     required
                     value={nuevaPassword}
                     onChange={(e) => setNuevaPassword(e.target.value)}
@@ -235,8 +256,8 @@ export const AdminDashboard = () => {
                   <label className="block text-sm font-black text-slate-800 mb-2 uppercase tracking-wider">
                     Confirmar Nueva
                   </label>
-                  <input 
-                    type="password" 
+                  <input
+                    type="password"
                     required
                     value={confirmarPassword}
                     onChange={(e) => setConfirmarPassword(e.target.value)}
@@ -246,16 +267,20 @@ export const AdminDashboard = () => {
                 </div>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loadingPassword}
                 className={`w-full py-4 text-xl font-black rounded-xl border-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:translate-x-1 active:shadow-none transition-all mt-4 ${
-                  loadingPassword 
-                    ? 'bg-slate-300 border-slate-500 text-slate-500 cursor-not-allowed shadow-[6px_6px_0px_0px_rgba(100,116,139,1)]' 
-                    : 'bg-blue-600 border-blue-800 text-white hover:bg-blue-500 shadow-[6px_6px_0px_0px_rgba(30,58,138,1)]'
+                  loadingPassword
+                    ? "bg-slate-300 border-slate-500 text-slate-500 cursor-not-allowed shadow-[6px_6px_0px_0px_rgba(100,116,139,1)]"
+                    : "bg-blue-600 border-blue-800 text-white hover:bg-blue-500 shadow-[6px_6px_0px_0px_rgba(30,58,138,1)]"
                 }`}
               >
-                {loadingPassword ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : 'Actualizar Contraseña'}
+                {loadingPassword ? (
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                ) : (
+                  "Actualizar Contraseña"
+                )}
               </button>
             </form>
           </div>
@@ -269,9 +294,12 @@ export const AdminDashboard = () => {
             <ShieldCheck className="w-8 h-8 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-green-900 mb-1">¡Seguridad al Máximo!</h2>
+            <h2 className="text-xl font-black text-green-900 mb-1">
+              ¡Seguridad al Máximo!
+            </h2>
             <p className="text-green-800 font-bold">
-              Tu contraseña ha sido actualizada correctamente. Tu cuenta maestra ahora está blindada.
+              Tu contraseña ha sido actualizada correctamente. Tu cuenta maestra
+              ahora está blindada.
             </p>
           </div>
         </div>
@@ -290,7 +318,8 @@ export const AdminDashboard = () => {
                 Centro de Mando
               </h2>
               <p className="text-slate-300 text-lg">
-                Control total sobre el sistema. Gestiona cuentas, roles y accesos de EduPlay.
+                Control total sobre el sistema. Gestiona cuentas, roles y
+                accesos de EduPlay.
               </p>
             </div>
 
@@ -455,7 +484,7 @@ export const AdminDashboard = () => {
 
                         {/* Botón Eliminar (NUEVA LÓGICA DE SUPERADMIN) */}
                         {/* No se puede borrar al ID 1 NUNCA. Si es ADMIN, solo el miId===1 puede verlo */}
-                        {u.id !== 1 && (u.rol !== "ADMIN" || miId === 1) && (
+                        {u.email !== CORREO_SUPERADMIN && (u.rol !== "ADMIN" || miEmail === CORREO_SUPERADMIN) && (
                           <button
                             onClick={() => handleEliminar(u.id)}
                             className="p-2 bg-white border border-gray-200 text-red-600 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors"
@@ -548,14 +577,17 @@ export const AdminDashboard = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, rol: e.target.value })
                   }
-                  disabled={!!usuarioEditando} 
+                  disabled={!!usuarioEditando}
                   className={`w-full px-4 py-3 border border-slate-200 rounded-xl font-bold transition-colors ${
                     usuarioEditando
-                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                      : 'bg-white focus:ring-2 focus:ring-slate-500 text-slate-900' 
+                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                      : "bg-white focus:ring-2 focus:ring-slate-500 text-slate-900"
                   }`}
                 >
-                  <option value="PROFESOR" className="text-slate-900 font-medium">
+                  <option
+                    value="PROFESOR"
+                    className="text-slate-900 font-medium"
+                  >
                     Profesor
                   </option>
                   <option value="ALUMNO" className="text-slate-900 font-medium">
@@ -570,7 +602,8 @@ export const AdminDashboard = () => {
                 </select>
                 {usuarioEditando && (
                   <p className="text-[10px] text-slate-400 mt-1 font-medium">
-                    El rol no se puede modificar para proteger la integridad de los datos.
+                    El rol no se puede modificar para proteger la integridad de
+                    los datos.
                   </p>
                 )}
               </div>
