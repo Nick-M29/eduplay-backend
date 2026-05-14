@@ -60,49 +60,53 @@ export const hacerAdmin = async (req: Request, res: Response) => {
   }
 };
 
-// 4. Crear un usuario manualmente desde el panel
+// 4. Crear un usuario manualmente desde el panel (YA VERIFICADO)
 export const crearUsuario = async (req: Request, res: Response) => {
   try {
     const { email, password, rol, nombreCompleto } = req.body;
     
-    // Encriptamos la contraseña temporal
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Usamos una transacción para crear el Usuario Y su perfil correspondiente a la vez
     const nuevoUsuario = await prisma.$transaction(async (tx) => {
       const user = await tx.usuario.create({
-        data: { email, passwordHash, rol }
+        data: { 
+          email, 
+          passwordHash, 
+          rol,
+          // CLAVE: El usuario nace verificado para que no pida código
+          verificado: true, 
+          codigoVerificacion: null // Limpiamos el código por si acaso
+        }
       });
 
-      // Creamos su perfil en blanco dependiendo del rol
       if (rol === 'PROFESOR') {
         await tx.profesor.create({ data: { usuarioId: user.id, nombreCompleto, fechaNacimiento: new Date() }});
       } else if (rol === 'ALUMNO') {
-        // Generamos un código de acceso aleatorio de 6 letras para el alumno
         const codigo = Math.random().toString(36).substring(2, 8).toUpperCase();
         await tx.alumno.create({ data: { usuarioId: user.id, nombreCompleto, codigoAcceso: codigo }});
       } else if (rol === 'PADRE') {
         await tx.padre.create({ data: { usuarioId: user.id, nombreCompleto, fechaNacimiento: new Date() }});
+      } else if (rol === 'ADMIN') {
+        // IMPORTANTE: Si creas un Admin, asegúrate de tener una tabla 'administrador' 
+        // o guarda el nombre en el perfil que corresponda según tu esquema.
       }
 
       return user;
     });
 
-    res.status(201).json({ message: 'Usuario creado con éxito', usuario: nuevoUsuario });
+    res.status(201).json({ message: 'Usuario creado y verificado con éxito', usuario: nuevoUsuario });
   } catch (error: any) {
     if (error.code === 'P2002') return res.status(400).json({ message: 'El email ya existe' });
     res.status(500).json({ message: 'Error al crear usuario' });
   }
 };
 
-// Añade esto en src/controllers/admin.controller.ts
 export const editarUsuario = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { email, nombreCompleto } = req.body; 
 
-    // 1. Buscamos al usuario para saber qué perfil tiene asociado
     const usuarioExistente = await prisma.usuario.findUnique({
       where: { id: Number(id) },
       include: { profesor: true, alumno: true, padre: true }
@@ -112,35 +116,32 @@ export const editarUsuario = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
 
-    // 2. Usamos una transacción para actualizar ambas tablas a la vez
     await prisma.$transaction(async (tx) => {
-      // Actualizamos el email y contraseña
+      // 1. Actualizamos los datos básicos del usuario
       await tx.usuario.update({
         where: { id: Number(id) },
         data: { email }
       });
 
+      // 2. Actualizamos el nombre en su perfil correspondiente
       if (usuarioExistente.rol === 'PROFESOR') {
-        await tx.profesor.update({ 
-          where: { usuarioId: Number(id) }, 
-          data: { nombreCompleto } 
-        });
+        await tx.profesor.update({ where: { usuarioId: Number(id) }, data: { nombreCompleto } });
       } else if (usuarioExistente.rol === 'ALUMNO') {
-        await tx.alumno.update({ 
-          where: { usuarioId: Number(id) }, 
-          data: { nombreCompleto } 
-        });
+        await tx.alumno.update({ where: { usuarioId: Number(id) }, data: { nombreCompleto } });
       } else if (usuarioExistente.rol === 'PADRE') {
-        await tx.padre.update({ 
-          where: { usuarioId: Number(id) }, 
-          data: { nombreCompleto } 
-        });
+        await tx.padre.update({ where: { usuarioId: Number(id) }, data: { nombreCompleto } });
+      } else if (usuarioExistente.rol === 'ADMIN') {
+        // OPCIÓN A: Si el Admin también es Profesor (o usa esa tabla para el nombre)
+        if (usuarioExistente.profesor) {
+          await tx.profesor.update({ where: { usuarioId: Number(id) }, data: { nombreCompleto } });
+        }
+        // OPCIÓN B: Si tienes una tabla 'administrador', actualízala aquí.
       }
     });
 
     res.json({ message: 'Usuario actualizado correctamente' });
   } catch (error: any) {
-    if (error.code === 'P2002') return res.status(400).json({ message: 'Este email ya está siendo usado por otra cuenta' });
-    res.status(500).json({ message: 'Error al actualizar usuario' });
+    if (error.code === 'P2002') return res.status(400).json({ message: 'Email en uso' });
+    res.status(500).json({ message: 'Error al actualizar' });
   }
 };
