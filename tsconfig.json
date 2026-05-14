@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2016",
     "module": "commonjs",
-    "rootDir": "./", 
+    "rootDir": "./src",
     "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -11,14 +11,12 @@
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
-    ],
-    "types": ["node"] 
+    ]
   },
   "ts-node": {
     "files": true
   },
   "include": [
-    "src/**/*",
-    "prisma/**/*" 
+    "src/**/*"
   ]
 }
