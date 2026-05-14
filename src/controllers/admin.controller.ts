@@ -42,10 +42,19 @@ export const eliminarUsuario = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const idAEliminar = Number(id);
-    const idSolicitante = (req as any).user.id;
 
+    // PON AQUÍ TU CORREO REAL DE SÚPER ADMIN
     const CORREO_SUPERADMIN = "nick3m9220@gmail.com"; 
 
+    // 1. Extracción a prueba de fallos del ID del solicitante (tú)
+    const rawId = (req as any).user?.id || (req as any).usuario?.id || (req as any).userId;
+    const idSolicitante = Number(rawId);
+
+    if (!rawId || isNaN(idSolicitante)) {
+      return res.status(401).json({ message: "Error de seguridad: No pudimos leer tu ID de administrador desde el token." });
+    }
+
+    // 2. Buscamos primero al usuario que se quiere eliminar
     const usuarioDestino = await prisma.usuario.findUnique({
       where: { id: idAEliminar },
     });
@@ -54,27 +63,25 @@ export const eliminarUsuario = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Usuario no encontrado." });
     }
 
+    // 3. Nadie, absolutamente nadie, borra al Súper Admin
     if (usuarioDestino.email === CORREO_SUPERADMIN) {
-      return res
-        .status(403)
-        .json({ message: "El Administrador Principal es intocable." });
+      return res.status(403).json({ message: "El Administrador Principal es intocable." });
     }
 
+    // 4. Si el usuario a borrar es un ADMIN, verificamos quién hace la petición
     if (usuarioDestino.rol === "ADMIN") {
-      // Buscamos los datos del solicitante en la BD para ver su correo
       const usuarioSolicitante = await prisma.usuario.findUnique({
         where: { id: idSolicitante }
       });
 
       if (usuarioSolicitante?.email !== CORREO_SUPERADMIN) {
-        return res
-          .status(403)
-          .json({
-            message: "Solo el Administrador Principal puede eliminar a otros administradores.",
-          });
+        return res.status(403).json({
+          message: "Solo el Administrador Principal puede eliminar a otros administradores.",
+        });
       }
     }
 
+    // 5. LIMPIEZA EN CASCADA (Para evitar el error de "llave foránea" de Prisma)
     if (usuarioDestino.rol === "PROFESOR" || usuarioDestino.rol === "ADMIN") {
       await prisma.profesor.deleteMany({ where: { usuarioId: idAEliminar } });
     } else if (usuarioDestino.rol === "ALUMNO") {
@@ -83,6 +90,7 @@ export const eliminarUsuario = async (req: Request, res: Response) => {
       await prisma.padre.deleteMany({ where: { usuarioId: idAEliminar } });
     }
 
+    // 6. Ahora sí, borramos al usuario de la tabla principal
     await prisma.usuario.delete({
       where: { id: idAEliminar },
     });
