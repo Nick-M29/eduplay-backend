@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RolUsuario {
+  PROFESOR
+  PADRE
+  ALUMNO
+  ADMIN
+}
+
+enum AudienciaMaterial {
+  ALUMNOS
+  PADRES
+  AMBOS
+}
+
+model Usuario {
+  id               Int       @id @default(autoincrement())
+  email            String    @unique
+  passwordHash     String    @map("password_hash")
+  rol              RolUsuario
+  fechaRegistro    DateTime  @default(now()) @map("fecha_registro")
+
+  verificado         Boolean   @default(false)
+  codigoVerificacion String?   // Opcional (?) porque se borrará una vez verificado
+
+  // Relations
+  profesor         Profesor?
+  alumno           Alumno?
+  padre            Padre?
+  mensajesEnviados MensajePadreProfesor[] @relation("MensajesEnviados")
+  mensajesRecibidos MensajePadreProfesor[] @relation("MensajesRecibidos")
+  gruposTareas     GrupoTarea[] @relation("MiembrosGrupoTarea")
+  entregasTareas   Entrega[] @relation("EntregasIndividuales")
+
+  comentariosMaterial ComentarioMaterial[] @relation("ComentariosUsuario")
+
+  @@map("Usuarios")
+}
+
+model Profesor {
+  usuarioId        Int       @id @map("usuario_id")
+  nombreCompleto   String    @map("nombre_completo")
+  fechaNacimiento  DateTime  @db.Date @map("fecha_nacimiento")
+
+  usuario          Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  clases           Clase[]
+
+  @@map("Profesores")
+}
+
+model Alumno {
+  usuarioId        Int       @id @map("usuario_id")
+  nombreCompleto   String    @map("nombre_completo")
+  codigoAcceso     String    @unique @map("codigo_acceso")
+  puntos           Int       @default(0)
+  avatarJson       Json?     @map("avatar_json")
+
+  usuario          Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  
+  padres           PadreAlumno[]
+  clases           ClaseAlumno[]
+  registrosAsistencia RegistroAsistencia[]
+  chatsEnviados    ChatAlumno[] @relation("ChatsEnviados")
+  chatsRecibidos   ChatAlumno[] @relation("ChatsRecibidos")
+
+  @@map("Alumnos")
+}
+
+model Padre {
+  usuarioId        Int       @id @map("usuario_id")
+  nombreCompleto   String    @map("nombre_completo")
+  fechaNacimiento  DateTime  @db.Date @map("fecha_nacimiento")
+
+  usuario          Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  alumnos          PadreAlumno[]
+
+  @@map("Padres")
+}
+
+model PadreAlumno {
+  padreId          Int       @map("padre_id")
+  alumnoId         Int       @map("alumno_id")
+
+  padre            Padre     @relation(fields: [padreId], references: [usuarioId], onDelete: Cascade)
+  alumno           Alumno    @relation(fields: [alumnoId], references: [usuarioId], onDelete: Cascade)
+
+  @@id([padreId, alumnoId])
+  @@map("Padre_Alumno")
+}
+
+model Clase {
+  id               Int       @id @default(autoincrement())
+  profesorId       Int       @map("profesor_id")
+  nombreClase      String    @map("nombre_clase")
+  codigoClase      String    @unique @map("codigo_clase")
+  claveIngreso     String    @map("clave_ingreso")
+  fechaCreacion    DateTime  @default(now()) @map("fecha_creacion")
+
+  profesor         Profesor  @relation(fields: [profesorId], references: [usuarioId], onDelete: Cascade)
+  alumnos          ClaseAlumno[]
+  hojasSeguimiento HojaSeguimiento[]
+  materiales       Material[]
+  mensajes         MensajePadreProfesor[]
+  chats            ChatAlumno[]
+  tareas           Tarea[]
+
+  @@map("Clases")
+}
+
+model ClaseAlumno {
+  claseId          Int       @map("clase_id")
+  alumnoId         Int       @map("alumno_id")
+
+  clase            Clase     @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  alumno           Alumno    @relation(fields: [alumnoId], references: [usuarioId], onDelete: Cascade)
+
+  @@id([claseId, alumnoId])
+  @@map("Clase_Alumno")
+}
+
+model HojaSeguimiento {
+  id               Int       @id @default(autoincrement())
+  claseId          Int       @map("clase_id")
+  fecha            DateTime  @db.Date
+
+  clase            Clase     @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  registrosAsistencia RegistroAsistencia[]
+
+  @@unique([claseId, fecha])
+  @@map("Hojas_Seguimiento")
+}
+
+model RegistroAsistencia {
+  hojaId           Int       @map("hoja_id")
+  alumnoId         Int       @map("alumno_id")
+  asistio          Boolean   @default(false)
+
+  hoja             HojaSeguimiento @relation(fields: [hojaId], references: [id], onDelete: Cascade)
+  alumno           Alumno    @relation(fields: [alumnoId], references: [usuarioId], onDelete: Cascade)
+
+  @@id([hojaId, alumnoId])
+  @@map("Registros_Asistencia")
+}
+
+model Material {
+  id               Int       @id @default(autoincrement())
+  claseId          Int       @map("clase_id")
+  titulo           String
+  contenido        String    @db.Text
+  audiencia        AudienciaMaterial
+  fechaPublicacion DateTime  @default(now()) @map("fecha_publicacion")
+
+  clase            Clase     @relation(fields: [claseId], references: [id], onDelete: Cascade)
+
+  comentarios      ComentarioMaterial[] @relation("ComentariosMaterial")
+
+  @@map("Materiales")
+}
+
+model MensajePadreProfesor {
+  id               Int       @id @default(autoincrement())
+  claseId          Int       @map("clase_id")
+  remitenteId      Int       @map("remitente_id")
+  destinatarioId   Int?      @map("destinatario_id")
+  esPublico        Boolean   @default(false) @map("es_publico")
+  texto            String    @db.Text
+  fechaEnvio       DateTime  @default(now()) @map("fecha_envio")
+
+  clase            Clase     @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  remitente        Usuario   @relation("MensajesEnviados", fields: [remitenteId], references: [id], onDelete: Cascade)
+  destinatario     Usuario?  @relation("MensajesRecibidos", fields: [destinatarioId], references: [id], onDelete: Cascade)
+
+  @@map("Mensajes_Padres_Profesores")
+}
+
+model ChatAlumno {
+  id               Int       @id @default(autoincrement())
+  claseId          Int       @map("clase_id")
+  remitenteId      Int       @map("remitente_id")
+  destinatarioId   Int?      @map("destinatario_id")
+  texto            String    @db.Text
+  fechaEnvio       DateTime  @default(now()) @map("fecha_envio")
+
+  clase            Clase     @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  remitente        Alumno    @relation("ChatsEnviados", fields: [remitenteId], references: [usuarioId], onDelete: Cascade)
+  destinatario     Alumno?   @relation("ChatsRecibidos", fields: [destinatarioId], references: [usuarioId], onDelete: Cascade)
+
+  @@map("Chats_Alumnos")
+}
+
+model ComentarioMaterial {
+  id              Int      @id @default(autoincrement())
+  materialId      Int      @map("material_id")
+  remitenteId     Int      @map("remitente_id") // Relacionado con Usuario general
+  texto           String   @db.Text
+  fechaCreacion   DateTime @default(now()) @map("fecha_creacion")
+
+  parentId        Int?     @map("parent_id")
+
+  material        Material @relation("ComentariosMaterial", fields: [materialId], references: [id], onDelete: Cascade)
+  remitente       Usuario  @relation("ComentariosUsuario", fields: [remitenteId], references: [id], onDelete: Cascade)
+
+  parent          ComentarioMaterial?  @relation("Respuestas", fields: [parentId], references: [id], onDelete: Cascade)
+  respuestas      ComentarioMaterial[] @relation("Respuestas")
+
+  @@map("Comentarios_Materiales")
+}
+
+enum EstadoEntrega {
+  PENDIENTE     // Aún no han enviado nada
+  ENTREGADA     // El alumno envió su respuesta, esperando corrección
+  APROBADA      // El profesor dio el visto bueno (+ XP)
+  RECHAZADA     // El profesor la marcó como incorrecta o no se hizo (- XP)
+}
+
+model Tarea {
+  id              Int       @id @default(autoincrement())
+  claseId         Int       @map("clase_id")
+  titulo          String
+  descripcion     String    @db.Text
+  fechaLimite     DateTime  @map("fecha_limite")
+  
+  // Sistema de puntos
+  recompensaXP    Int       @default(0) @map("recompensa_xp")
+  penalizacionXP  Int       @default(0) @map("penalizacion_xp")
+  
+  // Configuración de grupos
+  esGrupal        Boolean   @default(false) @map("es_grupal")
+  
+  fechaCreacion   DateTime  @default(now()) @map("fecha_creacion")
+
+  // Relaciones
+  clase           Clase        @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  entregas        Entrega[]
+  grupos          GrupoTarea[]
+
+  @@map("Tareas")
+}
+
+model GrupoTarea {
+  id          Int       @id @default(autoincrement())
+  tareaId     Int       @map("tarea_id")
+  nombre      String    // Ejemplo: "Grupo 1", "Equipo Alfa"
+
+  // Relaciones
+  tarea       Tarea     @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  entregas    Entrega[] 
+  
+  // Relación Muchos a Muchos con los alumnos que pertenecen a este grupo
+  alumnos     Usuario[] @relation("MiembrosGrupoTarea")
+
+  @@map("Grupos_Tareas")
+}
+
+model Entrega {
+  id              Int       @id @default(autoincrement())
+  tareaId         Int       @map("tarea_id")
+  
+  // Opciones: O la entrega es de un alumno individual, o es de un grupo entero
+  alumnoId        Int?      @map("alumno_id") 
+  grupoId         Int?      @map("grupo_id")  
+  
+  // El contenido de la tarea (texto, link a un drive, etc.)
+  contenido       String?   @db.Text
+  
+  estado          EstadoEntrega @default(PENDIENTE)
+  fechaEntrega    DateTime?     @map("fecha_entrega")
+  
+  // Relaciones
+  tarea           Tarea       @relation(fields: [tareaId], references: [id], onDelete: Cascade)
+  alumno          Usuario?    @relation("EntregasIndividuales", fields: [alumnoId], references: [id], onDelete: Cascade)
+  grupo           GrupoTarea? @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+  @@map("Entregas")
+}
